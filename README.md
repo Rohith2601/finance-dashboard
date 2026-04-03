@@ -189,3 +189,5 @@ npm run preview
 ## 📝 License
 
 This project was built as an internship assessment submission. Feel free to reference the architecture and patterns.
+#   f i n a n c e - d a s h b o a r d  
+ 
