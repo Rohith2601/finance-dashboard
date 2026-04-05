@@ -2,7 +2,10 @@ import SummaryCards from '../components/SummaryCards';
 import BalanceTrendChart from '../components/BalanceTrendChart';
 import SpendingBreakdownChart from '../components/SpendingBreakdownChart';
 import RecentTransactions from '../components/RecentTransactions';
+import PageTransition from '../components/PageTransition';
 import { useApp } from '../context/AppContext';
+import { motion } from 'framer-motion';
+import { Activity } from 'lucide-react';
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -16,30 +19,39 @@ const DashboardPage = () => {
   const greeting = getGreeting();
 
   return (
-    <div className="space-y-6">
+    <PageTransition className="space-y-5">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[var(--color-text-primary)] tracking-tight">
-            {greeting} 👋
-          </h2>
-          <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-            Here's an overview of your finances
-          </p>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2"
+      >
+        <div className="flex items-center gap-3">
+          <motion.div
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', damping: 15, stiffness: 200, delay: 0.2 }}
+            className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/20"
+          >
+            <Activity size={22} className="text-white" strokeWidth={2.5} />
+          </motion.div>
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[var(--color-text-primary)] tracking-tight">
+              {greeting}
+            </h2>
+            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
+              Here's an overview of your finances
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-medium text-[var(--color-text-secondary)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-            {state.role === 'admin' ? 'Admin' : 'Viewer'} Mode
-          </span>
-        </div>
-      </div>
+      </motion.div>
 
       {/* Summary Cards */}
       <SummaryCards />
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-5">
         <div className="xl:col-span-3">
           <BalanceTrendChart />
         </div>
@@ -50,7 +62,7 @@ const DashboardPage = () => {
 
       {/* Recent Transactions */}
       <RecentTransactions />
-    </div>
+    </PageTransition>
   );
 };
 

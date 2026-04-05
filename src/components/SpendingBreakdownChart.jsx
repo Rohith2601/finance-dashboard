@@ -3,6 +3,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useApp } from '../context/AppContext';
 import { CATEGORIES } from '../data/mockData';
 import { formatCurrency } from '../utils/helpers';
+import { motion } from 'framer-motion';
+import { PieChart as PieChartIcon } from 'lucide-react';
 
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
@@ -43,17 +45,28 @@ const SpendingBreakdownChart = () => {
 
   if (chartData.length === 0) {
     return (
-      <div className="glass-card p-6 transition-theme h-full">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.3 }}
+        className="glass-card p-6 transition-theme h-full"
+      >
         <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-4">Spending Breakdown</h3>
-        <div className="flex items-center justify-center h-48 text-[var(--color-text-muted)] text-sm">
-          No expense data to display
+        <div className="flex flex-col items-center justify-center h-48 text-[var(--color-text-muted)]">
+          <PieChartIcon size={32} className="mb-2 opacity-40" />
+          <p className="text-sm">No expense data to display</p>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="glass-card p-6 transition-theme h-full">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.3 }}
+      className="glass-card p-6 transition-theme h-full"
+    >
       <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-4">Spending Breakdown</h3>
       
       {/* Donut Chart — centered */}
@@ -70,6 +83,8 @@ const SpendingBreakdownChart = () => {
                 paddingAngle={3}
                 dataKey="value"
                 stroke="none"
+                animationDuration={1000}
+                animationEasing="ease-in-out"
               >
                 {chartData.map((entry, i) => (
                   <Cell key={i} fill={entry.fill} />
@@ -86,27 +101,45 @@ const SpendingBreakdownChart = () => {
         </div>
       </div>
 
-      {/* Legend List */}
-      <div className="space-y-2.5">
+      {/* Legend List with progress bars */}
+      <div className="space-y-2">
         {chartData.map((item, i) => {
-          const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
+          const pct = total > 0 ? ((item.value / total) * 100) : 0;
           return (
-            <div key={i} className="flex items-center gap-2.5 group">
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.fill }} />
-              <span className="flex-1 text-[13px] text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors truncate">
-                {item.name}
-              </span>
-              <span className="text-[13px] font-semibold text-[var(--color-text-primary)] tabular-nums whitespace-nowrap">
-                {formatCurrency(item.value)}
-              </span>
-              <span className="text-[11px] text-[var(--color-text-muted)] w-10 text-right tabular-nums flex-shrink-0">
-                {pct}%
-              </span>
-            </div>
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 + i * 0.05, duration: 0.3 }}
+              className="group"
+            >
+              <div className="flex items-center gap-2.5 mb-1">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.fill }} />
+                <span className="flex-1 text-[13px] text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors truncate">
+                  {item.name}
+                </span>
+                <span className="text-[13px] font-semibold text-[var(--color-text-primary)] tabular-nums whitespace-nowrap">
+                  {formatCurrency(item.value)}
+                </span>
+                <span className="text-[11px] text-[var(--color-text-muted)] w-10 text-right tabular-nums flex-shrink-0">
+                  {pct.toFixed(1)}%
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="ml-4 h-1 rounded-full bg-[var(--color-surface-alt)] overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ delay: 0.5 + i * 0.05, duration: 0.6, ease: 'easeOut' }}
+                  className="h-full rounded-full"
+                  style={{ background: item.fill }}
+                />
+              </div>
+            </motion.div>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

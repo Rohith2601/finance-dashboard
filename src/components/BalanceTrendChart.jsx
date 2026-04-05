@@ -4,12 +4,14 @@ import {
 } from 'recharts';
 import { useApp } from '../context/AppContext';
 import { getMonthKey, formatCurrency } from '../utils/helpers';
+import { motion } from 'framer-motion';
+import { TrendingUp } from 'lucide-react';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="glass-card px-4 py-3 !rounded-xl !shadow-lg border border-[var(--color-border)]">
-      <p className="text-xs text-[var(--color-text-muted)] mb-1">{label}</p>
+      <p className="text-xs font-medium text-[var(--color-text-muted)] mb-1.5">{label}</p>
       {payload.map((entry, i) => (
         <p key={i} className="text-sm font-semibold" style={{ color: entry.color }}>
           {entry.name}: {formatCurrency(entry.value)}
@@ -60,29 +62,41 @@ const BalanceTrendChart = () => {
 
   if (chartData.length === 0) {
     return (
-      <div className="glass-card p-6 transition-theme">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        className="glass-card p-6 transition-theme"
+      >
         <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-4">Balance Trend</h3>
-        <div className="flex items-center justify-center h-48 text-[var(--color-text-muted)] text-sm">
-          No data to display
+        <div className="flex flex-col items-center justify-center h-48 text-[var(--color-text-muted)]">
+          <TrendingUp size={32} className="mb-2 opacity-40" />
+          <p className="text-sm">No data to display</p>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="glass-card p-6 transition-theme">
-      <div className="flex items-center justify-between mb-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.2 }}
+      className="glass-card p-6 transition-theme"
+    >
+      <div className="flex items-center justify-between mb-5">
         <h3 className="text-base font-semibold text-[var(--color-text-primary)]">Balance Trend</h3>
-        <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-primary-500" /> Balance
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-income)]" /> Income
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-expense)]" /> Expenses
-          </span>
+        <div className="flex items-center gap-3 text-xs">
+          {[
+            { color: '#6366f1', label: 'Balance' },
+            { color: '#10b981', label: 'Income' },
+            { color: '#ef4444', label: 'Expenses' },
+          ].map(({ color, label }) => (
+            <span key={label} className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--color-surface-alt)] text-[var(--color-text-secondary)]">
+              <span className="w-2 h-2 rounded-full" style={{ background: color }} />
+              {label}
+            </span>
+          ))}
         </div>
       </div>
       <ResponsiveContainer width="100%" height={280}>
@@ -118,6 +132,8 @@ const BalanceTrendChart = () => {
             strokeWidth={2.5}
             fill="url(#balanceGradient)"
             dot={{ r: 4, fill: '#6366f1', stroke: '#fff', strokeWidth: 2 }}
+            animationDuration={1200}
+            animationEasing="ease-in-out"
           />
           <Area
             type="monotone"
@@ -126,6 +142,8 @@ const BalanceTrendChart = () => {
             strokeWidth={2}
             fill="url(#incomeGradient)"
             dot={{ r: 3, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+            animationDuration={1400}
+            animationEasing="ease-in-out"
           />
           <Line
             type="monotone"
@@ -134,10 +152,12 @@ const BalanceTrendChart = () => {
             strokeWidth={2}
             dot={{ r: 3, fill: '#ef4444', stroke: '#fff', strokeWidth: 2 }}
             strokeDasharray="5 5"
+            animationDuration={1600}
+            animationEasing="ease-in-out"
           />
         </AreaChart>
       </ResponsiveContainer>
-    </div>
+    </motion.div>
   );
 };
 

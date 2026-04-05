@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import { generateMockTransactions } from '../data/mockData';
 
 const AppContext = createContext(null);
@@ -32,6 +32,7 @@ const initialState = {
   },
   editingTransaction: null,
   showAddModal: false,
+  toasts: [],
 };
 
 // Try to restore from localStorage
@@ -47,6 +48,8 @@ const getInitialState = () => {
   }
   return initialState;
 };
+
+let toastIdCounter = 0;
 
 // Reducer
 const appReducer = (state, action) => {
@@ -102,6 +105,18 @@ const appReducer = (state, action) => {
     case 'CLOSE_MODAL':
       return { ...state, showAddModal: false, editingTransaction: null };
 
+    case 'SHOW_TOAST':
+      return {
+        ...state,
+        toasts: [...state.toasts, { id: ++toastIdCounter, ...action.payload }],
+      };
+
+    case 'DISMISS_TOAST':
+      return {
+        ...state,
+        toasts: state.toasts.filter((t) => t.id !== action.payload),
+      };
+
     default:
       return state;
   }
@@ -130,6 +145,11 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', state.darkMode);
   }, [state.darkMode]);
+
+  // Toast helper
+  const showToast = useCallback((message, type = 'success') => {
+    dispatch({ type: 'SHOW_TOAST', payload: { message, variant: type } });
+  }, []);
 
   // Filtered & sorted transactions
   const getFilteredTransactions = useCallback(() => {
@@ -189,11 +209,49 @@ export const AppProvider = ({ children }) => {
     };
   }, [state.transactions]);
 
+  // Previous month summary for KPI deltas
+  const getPreviousMonthSummary = useCallback(() => {
+    const txns = state.transactions;
+    const monthKeys = [...new Set(txns.map((t) => t.date.substring(0, 7)))].sort();
+    
+    if (monthKeys.length < 2) {
+      return { prevIncome: 0, prevExpense: 0, prevBalance: 0, prevCount: 0 };
+    }
+
+    const currentMonth = monthKeys[monthKeys.length - 1];
+    const previousMonth = monthKeys[monthKeys.length - 2];
+
+    const currentTxns = txns.filter((t) => t.date.startsWith(currentMonth));
+    const prevTxns = txns.filter((t) => t.date.startsWith(previousMonth));
+
+    const calc = (arr) => ({
+      income: arr.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0),
+      expense: arr.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
+      count: arr.length,
+    });
+
+    const curr = calc(currentTxns);
+    const prev = calc(prevTxns);
+
+    return {
+      currIncome: curr.income,
+      currExpense: curr.expense,
+      currBalance: curr.income - curr.expense,
+      currCount: curr.count,
+      prevIncome: prev.income,
+      prevExpense: prev.expense,
+      prevBalance: prev.income - prev.expense,
+      prevCount: prev.count,
+    };
+  }, [state.transactions]);
+
   const value = {
     state,
     dispatch,
     getFilteredTransactions,
     getSummary,
+    getPreviousMonthSummary,
+    showToast,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

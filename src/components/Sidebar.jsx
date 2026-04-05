@@ -1,12 +1,12 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   ArrowLeftRight,
   Lightbulb,
   Moon,
   Sun,
-  ChevronDown,
   Shield,
   Eye,
   Menu,
@@ -21,12 +21,31 @@ const navItems = [
   { path: '/insights', label: 'Insights', icon: Lightbulb },
 ];
 
-const Sidebar = () => {
-  const { state, dispatch } = useApp();
-  const [mobileOpen, setMobileOpen] = useState(false);
+const sidebarVariants = {
+  closed: { x: '-100%', transition: { type: 'spring', damping: 30, stiffness: 300 } },
+  open: { x: 0, transition: { type: 'spring', damping: 30, stiffness: 300 } },
+};
 
-  const roleIcon = state.role === 'admin' ? Shield : Eye;
-  const RoleIcon = roleIcon;
+const overlayVariants = {
+  closed: { opacity: 0 },
+  open: { opacity: 1 },
+};
+
+const Sidebar = () => {
+  const { state, dispatch, showToast } = useApp();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+
+  const isAdmin = state.role === 'admin';
+
+  const handleRoleChange = (e) => {
+    const newRole = e.target.value;
+    dispatch({ type: 'SET_ROLE', payload: newRole });
+    showToast(
+      `Switched to ${newRole === 'admin' ? 'Admin' : 'Viewer'} mode`,
+      'info'
+    );
+  };
 
   return (
     <>
@@ -48,90 +67,157 @@ const Sidebar = () => {
       </div>
 
       {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            variants={overlayVariants}
+            initial="closed"
+            animate="open"
+            exit="closed"
+            transition={{ duration: 0.2 }}
+            className="lg:hidden fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sidebar */}
+      {/* Sidebar — Desktop: always visible, Mobile: animated slide */}
       <aside
-        className={`
-          fixed top-0 left-0 bottom-0 z-50 w-64 bg-[var(--color-surface)] border-r border-[var(--color-border)]
-          flex flex-col transition-all duration-300 ease-in-out transition-theme
-          lg:translate-x-0 lg:static lg:z-auto
-          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}
+        className="hidden lg:flex fixed top-0 left-0 bottom-0 z-50 w-64 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex-col transition-theme lg:static lg:z-auto"
       >
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-[var(--color-border)]">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-md shadow-primary-500/20">
-            <span className="text-white font-bold text-lg">F</span>
-          </div>
-          <div>
-            <h1 className="font-bold text-lg text-[var(--color-text-primary)] leading-tight">FinVue</h1>
-            <p className="text-xs text-[var(--color-text-muted)]">Finance Dashboard</p>
-          </div>
-        </div>
+        <SidebarContent
+          state={state}
+          dispatch={dispatch}
+          isAdmin={isAdmin}
+          handleRoleChange={handleRoleChange}
+          location={location}
+          onNavClick={() => setMobileOpen(false)}
+        />
+      </aside>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map(({ path, label, icon: Icon }) => (
+      {/* Mobile sidebar */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.aside
+            variants={sidebarVariants}
+            initial="closed"
+            animate="open"
+            exit="closed"
+            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 w-64 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col transition-theme"
+          >
+            <SidebarContent
+              state={state}
+              dispatch={dispatch}
+              isAdmin={isAdmin}
+              handleRoleChange={handleRoleChange}
+              location={location}
+              onNavClick={() => setMobileOpen(false)}
+            />
+          </motion.aside>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
+
+const SidebarContent = ({ state, dispatch, isAdmin, handleRoleChange, location, onNavClick }) => {
+  return (
+    <>
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-6 py-5 border-b border-[var(--color-border)]">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-md shadow-primary-500/20">
+          <span className="text-white font-bold text-lg">F</span>
+        </div>
+        <div>
+          <h1 className="font-bold text-lg text-[var(--color-text-primary)] leading-tight">FinVue</h1>
+          <p className="text-xs text-[var(--color-text-muted)]">Finance Dashboard</p>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4 space-y-1">
+        {navItems.map(({ path, label, icon: Icon }) => {
+          const isActive = location.pathname === path;
+          return (
             <NavLink
               key={path}
               to={path}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+              onClick={onNavClick}
+              className={`relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                 ${
                   isActive
-                    ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 shadow-sm'
+                    ? 'text-primary-600 dark:text-primary-400'
                     : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]'
-                }`
-              }
+                }`}
             >
-              <Icon size={18} />
-              {label}
+              {isActive && (
+                <motion.div
+                  layoutId="sidebar-active"
+                  className="absolute inset-0 bg-primary-500/10 rounded-xl shadow-sm"
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-3">
+                <Icon size={18} />
+                {label}
+              </span>
             </NavLink>
-          ))}
-        </nav>
+          );
+        })}
+      </nav>
 
-        {/* Bottom Controls */}
-        <div className="px-4 pb-5 space-y-3">
-          {/* Role Selector */}
-          <div className="p-3 rounded-xl bg-[var(--color-surface-alt)] border border-[var(--color-border)]">
-            <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-2 block">
-              Role
-            </label>
-            <div className="relative">
-              <RoleIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-              <select
-                id="role-selector"
-                value={state.role}
-                onChange={(e) => dispatch({ type: 'SET_ROLE', payload: e.target.value })}
-                className="w-full pl-8 pr-8 py-2 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all"
-              >
-                {Object.entries(ROLES).map(([key, { label }]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
+      {/* Bottom Controls */}
+      <div className="px-4 pb-5 space-y-3">
+        {/* Role Selector */}
+        <div className={`p-3 rounded-xl border transition-all duration-300 ${
+          isAdmin
+            ? 'bg-primary-50/50 dark:bg-primary-500/5 border-primary-200 dark:border-primary-500/20'
+            : 'bg-amber-50/50 dark:bg-amber-500/5 border-amber-200 dark:border-amber-500/20'
+        }`}>
+          <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-2 block">
+            Role
+          </label>
+          <div className="relative">
+            {isAdmin ? (
+              <Shield size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-500" />
+            ) : (
+              <Eye size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500" />
+            )}
+            <select
+              id="role-selector"
+              value={state.role}
+              onChange={handleRoleChange}
+              className="w-full pl-8 pr-8 py-2 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all"
+            >
+              {Object.entries(ROLES).map(([key, { label }]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
+          <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">
+            {isAdmin ? 'Full access — can add, edit, delete' : 'Read-only — view data only'}
+          </p>
+        </div>
 
-          {/* Dark Mode Toggle */}
-          <button
-            id="dark-mode-toggle"
-            onClick={() => dispatch({ type: 'TOGGLE_DARK_MODE' })}
-            className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] transition-all duration-200"
+        {/* Dark Mode Toggle */}
+        <button
+          id="dark-mode-toggle"
+          onClick={() => dispatch({ type: 'TOGGLE_DARK_MODE' })}
+          className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] transition-all duration-200"
+        >
+          <motion.div
+            key={state.darkMode ? 'sun' : 'moon'}
+            initial={{ rotate: -90, opacity: 0 }}
+            animate={{ rotate: 0, opacity: 1 }}
+            transition={{ duration: 0.3 }}
           >
             {state.darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            {state.darkMode ? 'Light Mode' : 'Dark Mode'}
-          </button>
-        </div>
-      </aside>
+          </motion.div>
+          {state.darkMode ? 'Light Mode' : 'Dark Mode'}
+        </button>
+      </div>
     </>
   );
 };
